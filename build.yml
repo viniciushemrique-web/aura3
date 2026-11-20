@@ -1,0 +1,54 @@
+name: Gerar instalador Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Organizar estrutura (caso o upload tenha achatado as pastas)
+        shell: pwsh
+        run: |
+          function Mover($nome, $destino) {
+            if ((Test-Path $nome) -and -not (Test-Path (Join-Path $destino $nome))) {
+              New-Item -ItemType Directory -Force -Path $destino | Out-Null
+              Move-Item $nome (Join-Path $destino $nome)
+            }
+          }
+          'Cargo.toml','build.rs','tauri.conf.json' | ForEach-Object { Mover $_ 'src-tauri' }
+          Mover 'default.json' 'src-tauri/capabilities'
+          'lib.rs','main.rs' | ForEach-Object { Mover $_ 'src-tauri/src' }
+          'config.ts','estado.ts','voz.ts','saude.ts','acoes.ts','spotify.ts','ia.ts','reconhecimento.ts','orquestrador.ts','overlay.ts','midia.ts' | ForEach-Object { Mover $_ 'src/core' }
+          Mover 'main.ts' 'src'
+          Get-ChildItem -Recurse -File -Exclude node_modules | Where-Object { $_.FullName -notmatch 'node_modules|\.git\\' } | ForEach-Object { $_.FullName }
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm install
+      - run: npx tauri icon app-icon.png
+      - name: Compilar (.env a partir dos Secrets)
+        shell: pwsh
+        run: |
+          @"
+          VITE_NOME_ASSISTENTE=${{ secrets.VITE_NOME_ASSISTENTE }}
+          VITE_GEMINI_API_KEY=${{ secrets.VITE_GEMINI_API_KEY }}
+          VITE_GEMINI_MODEL=${{ secrets.VITE_GEMINI_MODEL }}
+          VITE_SPOTIFY_CLIENT_ID=${{ secrets.VITE_SPOTIFY_CLIENT_ID }}
+          VITE_SPOTIFY_REFRESH_TOKEN=${{ secrets.VITE_SPOTIFY_REFRESH_TOKEN }}
+          VITE_CHAVE_PIX=${{ secrets.VITE_CHAVE_PIX }}
+          "@ | Set-Content .env
+          npm run tauri build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Aura-instalador
+          path: src-tauri/target/release/bundle/nsis/*.exe

@@ -1,0 +1,32 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Permissões do assistente",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-set-ignore-cursor-events",
+    "core:window:allow-cursor-position",
+    "core:window:allow-outer-position",
+    "core:window:allow-scale-factor",
+    "core:window:allow-set-position",
+    "core:window:allow-set-focus",
+    "core:window:allow-set-title",
+    "core:window:allow-current-monitor",
+    "clipboard-manager:allow-write-text",
+    "fs:allow-exists",
+    "fs:allow-read-dir",
+    "fs:allow-mkdir",
+    "fs:allow-rename",
+    "fs:scope-desktop-recursive",
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://generativelanguage.googleapis.com/*" },
+        { "url": "https://api.spotify.com/*" },
+        { "url": "https://accounts.spotify.com/*" },
+        { "url": "http://localhost:5000/*" }
+      ]
+    }
+  ]
+}
